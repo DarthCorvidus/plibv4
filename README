@@ -1,0 +1,17 @@
+plibv4 - a PHP library
+
+plibv4 stands for „PHP Library, Version 4“. It is partly a rewrite of libraries
+I wrote earlier and mostly used in the context of one employer. While all
+predecessors were written mostly in my private time and published under GPL, I
+want to prevent any legal issues from happening by doing a complete rewrite.
+I also see this as an opportunity to improve on my quality, using Unit Tests and
+Composer.
+
+plibv4 is a meta project, while the code as such resides within separate git
+repositories. So basically this is for meta topics such as this README or to run
+all unit tests, while also testing whether all Composer defininitions work
+correctly.
+At the moment, every plibv4 itself and every plibv4-* repository is constructed
+primarily with development in mind, and none of them should be used in
+production unless marked otherwise.
+
