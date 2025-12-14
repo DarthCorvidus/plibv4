@@ -1,0 +1,30 @@
+properties(
+    [
+        parameters(
+            [
+                string(defaultValue: 'plibv4-longeststring', name: 'project', trim: true),
+            ]
+        )
+    ]
+)
+//ansiColor('xterm') {
+node('ocp-maven') {
+    stage('Parallel Composer Runs') {
+        currentBuild.displayName = env.BUILD_NUMBER+" "+params.project
+        parallel(
+            "Debian12": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "debian"), string(name:"version", value: "12"), string(name:"project", value: params.project)])
+            },
+            "Debian13": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "debian"), string(name:"version", value: "13"), string(name:"project", value: params.project)])
+            },
+            "Centos9": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "centos"), string(name:"version", value: "9"), string(name:"project", value: params.project)])
+            },
+            "Centos10": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "centos"), string(name:"version", value: "10"), string(name:"project", value: params.project)])
+            }
+        )
+    }
+}
+//}
