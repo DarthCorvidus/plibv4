@@ -1,0 +1,33 @@
+properties(
+    [
+        parameters(
+            [
+                string(defaultValue: 'plibv4-longeststring', name: 'project', trim: true),
+                string(defaultValue: 'debian', name: 'distribution', trim: true),
+                string(defaultValue: '12', name: 'version', trim: true)
+            ]
+        )
+    ]
+)
+
+node('plibv4-'+params.distribution) {
+    stage('Parallel Composer Runs') {
+        container(params.distribution+params.version) {
+            stage('Checkout') {
+                currentBuild.displayName = env.BUILD_NUMBER+": "+params.project+" on "+params.distribution+" "+params.version
+                git branch: "main", url: "https://github.com/DarthCorvidus/"+params.project+".git"
+            }
+
+            stage("Composer install") {
+                sh "composer install"
+            }
+            stage("PHPUnit") {
+                sh "composer test"
+            }
+            stage("Psalm") {
+                sh "php -v"
+                sh "composer psalm"
+            }
+        }
+    }
+}
