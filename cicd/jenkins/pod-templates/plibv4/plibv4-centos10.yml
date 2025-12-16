@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  containers:
+    - name: jnlp
+      image: jenkins/inbound-agent:latest
+      volumeMounts:
+      - name: home-volume
+        mountPath: /home/jenkins
+      env:
+      - name: HOME
+        value: /home/jenkins
+    - name: centos10
+      image: default-route-openshift-image-registry.apps-crc.testing/jenkins-agents/plibv4-centos:10
+      volumeMounts:
+      - name: home-volume
+        mountPath: /home/jenkins
+      env:
+      - name: HOME
+        value: /home/jenkins
+      command: ['sleep', 'infinity']
+      tty: true
+  volumes:
+  - name: home-volume
+    persistentVolumeClaim:
+      claimName: plibv4-centos10

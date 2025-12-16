@@ -1,0 +1,56 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-debian12
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-debian13
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-centos9
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-centos10
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem
+
