@@ -10,7 +10,7 @@ properties(
     ]
 )
 
-node('plibv4-'+params.distribution) {
+node('plibv4-'+params.distribution+params.version) {
     stage('Parallel Composer Runs') {
         container(params.distribution+params.version) {
             stage('Checkout') {
