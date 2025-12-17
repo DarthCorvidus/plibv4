@@ -1,0 +1,77 @@
+{
+	"minimum-stability": "dev",
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-assert",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-convert",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-fixedpoint",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-juliandate",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-longeststring",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-set",
+			"no-api": true
+		},		
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-terminaltable",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-validate",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-vtc",
+			"no-api": true
+		}
+	],
+	"name": "plibv4/main",
+	"require": {
+			"plibv4/assert": "dev-main",
+			"plibv4/convert": "dev-main",
+			"plibv4/fixedpoint": "dev-main",
+			"plibv4/juliandate": "dev-main",
+			"plibv4/longeststring": "dev-main",
+			"plibv4/set": "dev-main",
+			"plibv4/terminaltable": "dev-main",
+			"plibv4/validate": "dev-main",
+			"plibv4/vtc": "dev-main"
+	},
+	"autoload": {
+        "classmap": ["src/"]
+    },
+	"require-dev": {
+		"phpunit/phpunit": "^7"
+	},
+	"scripts": {
+		"test": "./vendor/bin/phpunit --bootstrap vendor/autoload.php tests",
+		"testdox-assert": "./vendor/bin/phpunit --bootstrap vendor/autoload.php --testdox --colors=always vendor/plibv4/assert"
+	},
+	"config": {
+		"platform": {
+			"php": "7.3"
+		}
+	}
+}
