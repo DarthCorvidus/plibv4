@@ -5,7 +5,7 @@ ENV HOME=/home/jenkins
 RUN dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
 RUN dnf module reset php -y
 RUN dnf module enable php:remi-8.2 -y
-RUN dnf install -y php-cli php-common php-mbstring php-zip php-dom php-sysvmsg
+RUN dnf install -y php-cli php-common php-mbstring php-zip php-dom php-sysvmsg php-sqlite3
 RUN php -v
 
 WORKDIR /root/
