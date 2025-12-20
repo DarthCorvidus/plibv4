@@ -15,6 +15,7 @@ spec:
         value: /home/jenkins
     - name: centos10
       image: default-route-openshift-image-registry.apps-crc.testing/jenkins-agents/plibv4-centos:10
+      imagePullPolicy: Always
       volumeMounts:
       - name: home-volume
         mountPath: /home/jenkins
