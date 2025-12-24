@@ -49,7 +49,6 @@ class Main {
 	
 	function run() {
 		foreach($this->projects as $value) {
-			print_r($value);
 			$array = $value->getArray();
 			echo $array["name"].":".PHP_EOL;
 			$result = $value->getValue($this->search);
