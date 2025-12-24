@@ -2,9 +2,15 @@
 <?php
 class ComposerFile {
 	private array $json;
+	private string $composerPath;
 	function __construct(string $composer) {
+		$this->composerPath = $composer;
 		$jsonString = file_get_contents($composer);
 		$this->json = json_decode($jsonString, true);
+	}
+	
+	public function getComposerPath(): string {
+		return $this->composerPath;
 	}
 	
 	public function getArray(): array {
