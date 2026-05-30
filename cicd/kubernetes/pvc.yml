@@ -53,4 +53,31 @@ spec:
     requests:
       storage: 75Mi
   volumeMode: Filesystem
-
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-fedora43
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: plibv4-fedora44
+  namespace: jenkins-agents
+spec:
+  storageClassName: crc-csi-hostpath-provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 75Mi
+  volumeMode: Filesystem

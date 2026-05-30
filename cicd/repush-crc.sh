@@ -12,6 +12,8 @@ IMAGES=(
   "debian:13"
   "centos:9"
   "centos:10"
+  "fedora:43"
+  "fedora:44"
 )
 
 for img in "${IMAGES[@]}"; do

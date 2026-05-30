@@ -23,6 +23,12 @@ node('ocp-maven') {
             },
             "Centos10": {
                 build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "centos"), string(name:"version", value: "10"), string(name:"project", value: params.project)])
+            },
+            "Fedora43": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "fedora"), string(name:"version", value: "43"), string(name:"project", value: params.project)])
+            },
+            "Fedora44": {
+                build (job: "plibv4-sub", parameters: [string(name:"distribution", value: "fedora"), string(name:"version", value: "44"), string(name:"project", value: params.project)])
             }
         )
     }
