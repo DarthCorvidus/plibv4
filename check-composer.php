@@ -58,7 +58,8 @@ class Main {
 			$array = $value->getArray();
 			echo $array["name"].":".PHP_EOL;
 			$result = $value->getValue($this->search);
-			if($result==NULL) {
+			if($result==="") {
+				echo "n/a".PHP_EOL;
 				continue;
 			}
 			echo json_encode($result, JSON_PRETTY_PRINT).PHP_EOL;
