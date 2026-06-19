@@ -12,7 +12,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 use plibv4\CICD\Main;
 
 // Create and run CICD checker
-$main = new Main('/home/hm/NetBeansProjects/plibv4/');
+$main = new Main(__DIR__);
+$main->enableTests('cicd/dockerfiles', verbose: false);
 $exitCode = $main->run();
 
 exit($exitCode);

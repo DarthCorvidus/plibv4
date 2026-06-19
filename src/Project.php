@@ -24,6 +24,22 @@ class Project {
 	}
 	
 	/**
+	 * Get the project path
+	 * @return string
+	 */
+	public function getPath(): string {
+		return $this->path;
+	}
+	
+	/**
+	 * Get the project name (basename of path)
+	 * @return string
+	 */
+	public function getName(): string {
+		return basename($this->path);
+	}
+	
+	/**
 	 * Check if psalm.xml exists in the project
 	 * @return bool True if psalm.xml exists
 	 */

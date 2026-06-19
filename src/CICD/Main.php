@@ -12,14 +12,19 @@ use plibv4\Project;
 
 /**
  * Main CICD checker class
- * 
+ *
  * Enumerates all plibv-* projects and checks if they are complete
  * (have composer.json, phpunit.xml, and psalm.xml)
  */
 class Main {
 	private Projects $projects;
+	private ?DockerBuilds $dockerfiles = null;
+	private ?TestRunner $testRunner = null;
 	private int $completeCount = 0;
 	private int $incompleteCount = 0;
+	private bool $runTests = false;
+	/** @var list<TestResult> */
+	private array $testResults = [];
 	
 	/**
 	 * Constructor
@@ -30,14 +35,84 @@ class Main {
 	}
 	
 	/**
+	 * Enable test execution
+	 * @param string $dockerfilesPath Path to dockerfiles directory
+	 * @param bool $verbose Enable verbose output
+	 */
+	public function enableTests(string $dockerfilesPath, bool $verbose = false): void {
+		$this->runTests = true;
+		$this->dockerfiles = new DockerBuilds($dockerfilesPath);
+		$this->testRunner = new TestRunner();
+		$this->testRunner->setVerbose($verbose);
+		$this->testRunner->ensureVolumeExists();
+	}
+	
+	/**
 	 * Run the CICD check
 	 * @return int Exit code (0 for success, 1 if incomplete projects found)
 	 */
 	public function run(): int {
+		// Prune incomplete projects
+		$pruned = $this->projects->prune();
+		
 		$this->printHeader();
-		$this->checkProjects();
+		
+		if ($pruned > 0) {
+			echo "Pruned {$pruned} incomplete project(s)\n\n";
+		}
+		
+		if ($this->runTests) {
+			$this->runTestsOnProjects();
+		} else {
+			$this->checkProjects();
+		}
+		
 		$this->printSummary();
+		
+		if ($this->runTests) {
+			return $this->hasTestFailures() ? 1 : 0;
+		}
+		
 		return $this->incompleteCount > 0 ? 1 : 0;
+	}
+	
+	/**
+	 * Run tests on all projects
+	 */
+	private function runTestsOnProjects(): void {
+		if ($this->dockerfiles === null || $this->testRunner === null) {
+			return;
+		}
+		
+		echo "Running tests on " . $this->projects->getCount() . " project(s) " .
+		     "across " . $this->dockerfiles->getCount() . " environment(s)...\n\n";
+		
+		for($i = 0; $i<$this->projects->getCount();$i++) {
+			$project = $this->projects->getProject($i);
+			$projectName = $project->getName();
+			
+			foreach ($this->dockerfiles->getDockerfiles() as $dockerfile) {
+				echo "Testing {$projectName} on {$dockerfile}...\n";
+				
+				$result = $this->testRunner->runTest($project, $dockerfile);
+				$this->testResults[] = $result;
+				
+				echo $result->getSummary();
+			}
+		}
+	}
+	
+	/**
+	 * Check if any tests failed
+	 * @return bool
+	 */
+	private function hasTestFailures(): bool {
+		foreach ($this->testResults as $result) {
+			if (!$result->isSuccess()) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -101,9 +176,27 @@ class Main {
 	private function printSummary(): void {
 		echo "\n" . str_repeat("=", 70) . "\n";
 		echo "Summary:\n";
-		echo "  Complete projects:   {$this->completeCount}\n";
-		echo "  Incomplete projects: {$this->incompleteCount}\n";
-		echo "  Total projects:      " . $this->projects->getCount() . "\n";
+		
+		if ($this->runTests) {
+			$passed = 0;
+			$failed = 0;
+			
+			foreach ($this->testResults as $result) {
+				if ($result->isSuccess()) {
+					$passed++;
+				} else {
+					$failed++;
+				}
+			}
+			
+			echo "  Tests passed: {$passed}\n";
+			echo "  Tests failed: {$failed}\n";
+			echo "  Total tests:  " . count($this->testResults) . "\n";
+		} else {
+			echo "  Complete projects:   {$this->completeCount}\n";
+			echo "  Incomplete projects: {$this->incompleteCount}\n";
+			echo "  Total projects:      " . $this->projects->getCount() . "\n";
+		}
 	}
 	
 	/**
@@ -129,6 +222,13 @@ class Main {
 	public function getProjects(): Projects {
 		return $this->projects;
 	}
+	
+	/**
+	 * Get test results
+	 * @return list<TestResult>
+	 */
+	public function getTestResults(): array {
+		return $this->testResults;
+	}
 }
 
-// Made with Bob

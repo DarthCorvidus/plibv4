@@ -99,7 +99,7 @@ class Projects {
 	 * @return int Number of projects
 	 */
 	public function getCount(): int {
-		return count($this->projectNames);
+		return count($this->projects);
 	}
 	
 	/**
