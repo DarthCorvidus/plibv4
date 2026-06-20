@@ -21,6 +21,8 @@ class Container {
 	private string $tag;
 	/** @var list<string> */
 	private array $volumes = [];
+	/** @var array<string, string> */
+	private array $annotations = [];
 	
 	/**
 	 * Constructor
@@ -43,6 +45,33 @@ class Container {
 	 */
 	public function addVolume(string $volume): void {
 		$this->volumes[] = $volume;
+	}
+	
+	/**
+	 * Add an annotation (key-value metadata)
+	 * @param string $key Annotation key
+	 * @param string $value Annotation value
+	 */
+	public function addAnnotation(string $key, string $value): void {
+		$this->annotations[$key] = $value;
+	}
+	
+	/**
+	 * Get an annotation value by key
+	 * @param string $key Annotation key
+	 * @return string|null Annotation value or null if not found
+	 */
+	public function getAnnotation(string $key): ?string {
+		return $this->annotations[$key] ?? null;
+	}
+	
+	/**
+	 * Check if an annotation exists
+	 * @param string $key Annotation key
+	 * @return bool True if annotation exists
+	 */
+	public function hasAnnotation(string $key): bool {
+		return isset($this->annotations[$key]);
 	}
 	
 	/**

@@ -62,6 +62,8 @@ class Containers {
 					
 					try {
 						$container = new Container($dockerfilePath, $containerName, $tag);
+						$container->addAnnotation('distribution', $distribution);
+						$container->addAnnotation('version', $version);
 						$containers->addContainer($container);
 					} catch (InvalidArgumentException $e) {
 						// Skip invalid containers
