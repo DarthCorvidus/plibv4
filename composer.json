@@ -45,6 +45,16 @@
 			"type": "vcs",
 			"url": "https://github.com/DarthCorvidus/plibv4-vtc",
 			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-argv",
+			"no-api": true
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/DarthCorvidus/plibv4-uservalue",
+			"no-api": true
 		}
 	],
 	"name": "plibv4/main",
@@ -57,7 +67,8 @@
 			"plibv4/set": "dev-main",
 			"plibv4/terminaltable": "dev-main",
 			"plibv4/validate": "dev-main",
-			"plibv4/vtc": "dev-main"
+			"plibv4/vtc": "dev-main",
+		"plibv4/argv": "dev-main"
 	},
 	"autoload": {
 	       "psr-4": {
