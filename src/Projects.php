@@ -146,7 +146,7 @@ class Projects {
 		}
 		
 		$this->projectNames = $newProjectNames;
-		$this->projects = $newProjects;
+		$this->projects = array_slice($newProjects, 0, 1);
 		
 		return $originalCount - count($this->projects);
 	}

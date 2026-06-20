@@ -11,14 +11,13 @@ use plibv4\Project;
 use RuntimeException;
 
 /**
- * TestRunner orchestrates Docker-based testing of projects
- * 
- * Uses docker cp to copy project files and volume mounting for /home/jenkins
+ * TestRunner orchestrates Docker-based testing of projects using Container/Containers
  */
 class TestRunner {
 	private string $volumeName = 'jenkins-workspace';
-	private string $imagePrefix = 'plibv4-test';
-	private bool $verbose = false;
+	private int $totalTests = 0;
+	private int $passedTests = 0;
+	private int $failedTests = 0;
 	
 	/**
 	 * Set the volume name to use
@@ -29,197 +28,104 @@ class TestRunner {
 	}
 	
 	/**
-	 * Set the image prefix
-	 * @param string $prefix
-	 */
-	public function setImagePrefix(string $prefix): void {
-		$this->imagePrefix = $prefix;
-	}
-	
-	/**
-	 * Enable verbose output
-	 * @param bool $verbose
-	 */
-	public function setVerbose(bool $verbose): void {
-		$this->verbose = $verbose;
-	}
-	
-	/**
-	 * Run tests for a project on a specific Docker environment
+	 * Run tests for a project on all containers
 	 * @param Project $project
-	 * @param DockerBuild $dockerfile
-	 * @return TestResult
+	 * @param Containers $containers
 	 */
-	public function runTest(Project $project, DockerBuild $dockerfile): TestResult {
-		$result = new TestResult($project, $dockerfile);
-		$containerName = $this->generateContainerName($project, $dockerfile);
-		$imageName = $this->imagePrefix . ':' . $dockerfile->getDistributionVersion();
+	public function runTests(Project $project, Containers $containers): void {
+		$this->ensureVolumeExists();
+		
+		foreach ($containers->getContainers() as $container) {
+			$this->runTest($project, $container);
+		}
+	}
+	
+	/**
+	 * Run test for a project on a specific container
+	 * @param Project $project
+	 * @param Container $container
+	 */
+	public function runTest(Project $project, Container $container): void {
+		$this->totalTests++;
+		$containerName = $container->getName();
+		
+		echo "\n" . str_repeat('=', 70) . "\n";
+		echo "Testing {$project->getName()} on {$containerName}\n";
+		echo str_repeat('=', 70) . "\n";
 		
 		try {
-			// 1. Ensure Docker image exists
-			$this->ensureImageExists($dockerfile, $imageName);
+			// 1. Build and run container
+			$container->addVolume("{$this->volumeName}:/home/jenkins");
+			$container->build();
+			$container->run();
 			
-			// 2. Start container with volume
-			$this->startContainer($imageName, $containerName);
+			// 2. Clean up any existing project directory
+			$container->exec('rm -rf /home/jenkins/project');
 			
-			// 3. Clean up any existing project directory
-			$this->cleanProjectDirectory($containerName);
+			// 3. Copy project files
+			$this->copyProjectFiles($project, $container);
 			
-			// 4. Copy project files
-			$this->copyProjectFiles($project, $containerName);
-			
-			// 5. Run composer install (with dev dependencies for testing)
-			$installResult = $this->execInContainer(
-				$containerName,
-				'cd /home/jenkins/project && composer install'
-			);
-			$result->setComposerInstall($installResult);
+			// 4. Run composer install
+			echo "Running composer install...\n";
+			$installResult = $container->exec('cd /home/jenkins/project && composer install');
 			
 			if (!$installResult->isSuccess()) {
-				return $result;
+				echo "✗ Composer install failed (exit code: {$installResult->getExitCode()})\n";
+				$this->failedTests++;
+				return;
 			}
+			echo "✓ Composer install successful\n";
 			
-			// 6. Run tests
-			$testResult = $this->execInContainer(
-				$containerName,
-				'cd /home/jenkins/project && composer test'
-			);
-			$result->setComposerTest($testResult);
+			// 5. Run tests
+			echo "Running tests...\n";
+			$testResult = $container->exec('cd /home/jenkins/project && composer test');
 			
-			// 7. Run psalm
-			$psalmResult = $this->execInContainer(
-				$containerName,
-				'cd /home/jenkins/project && composer psalm'
-			);
-			$result->setComposerPsalm($psalmResult);
+			if (!$testResult->isSuccess()) {
+				echo "✗ Tests failed (exit code: {$testResult->getExitCode()})\n";
+				$this->failedTests++;
+				return;
+			}
+			echo "✓ Tests passed\n";
+			
+			// 6. Run psalm
+			echo "Running psalm...\n";
+			$psalmResult = $container->exec('cd /home/jenkins/project && composer psalm');
+			
+			if (!$psalmResult->isSuccess()) {
+				echo "✗ Psalm failed (exit code: {$psalmResult->getExitCode()})\n";
+				$this->failedTests++;
+				return;
+			}
+			echo "✓ Psalm passed\n";
+			
+			// All tests passed
+			$this->passedTests++;
+			echo "\n✓ All tests passed on {$containerName}\n";
 			
 		} catch (RuntimeException $e) {
-			$result->setError($e->getMessage());
-		} finally {
-			// 8. Cleanup
-			$this->stopAndRemoveContainer($containerName);
-			$result->complete();
+			echo "✗ Error: {$e->getMessage()}\n";
+			$this->failedTests++;
 		}
-		
-		return $result;
-	}
-	
-	/**
-	 * Generate a unique container name
-	 * @param Project $project
-	 * @param DockerBuild $dockerfile
-	 * @return string
-	 */
-	private function generateContainerName(Project $project, DockerBuild $dockerfile): string {
-		$name = 'plibv4-test-' . $project->getName() . '-' . 
-		        $dockerfile->getDistribution() . '-' . 
-		        $dockerfile->getVersion() . '-' . 
-		        uniqid();
-		return $name;
-	}
-	
-	/**
-	 * Ensure Docker image exists, build if necessary
-	 * @param DockerBuild $dockerfile
-	 * @param string $imageName
-	 * @throws RuntimeException
-	 */
-	private function ensureImageExists(DockerBuild $dockerfile, string $imageName): void {
-		// Check if image exists
-		$output = [];
-		exec("docker images -q {$imageName} 2>&1", $output, $exitCode);
-		
-		if (!empty($output[0])) {
-			if ($this->verbose) {
-				echo "Image {$imageName} already exists\n";
-			}
-			return;
-		}
-		
-		// Build image
-		if ($this->verbose) {
-			echo "Building image {$imageName}...\n";
-		}
-		
-		$dockerfilePath = $dockerfile->getPath();
-		$buildCmd = "docker build -t {$imageName} {$dockerfilePath} 2>&1";
-		
-		exec($buildCmd, $output, $exitCode);
-		
-		if ($exitCode !== 0) {
-			throw new RuntimeException(
-				"Failed to build Docker image {$imageName}: " . implode("\n", $output)
-			);
-		}
-	}
-	
-	/**
-	 * Start a Docker container
-	 * @param string $imageName
-	 * @param string $containerName
-	 * @throws RuntimeException
-	 */
-	private function startContainer(string $imageName, string $containerName): void {
-		if ($this->verbose) {
-			echo "Starting container {$containerName}...\n";
-		}
-		
-		$cmd = "docker run -d --name {$containerName} " .
-		       "-v {$this->volumeName}:/home/jenkins " .
-		       "{$imageName} 2>&1";
-		
-		$output = [];
-		exec($cmd, $output, $exitCode);
-		
-		if ($exitCode !== 0) {
-			throw new RuntimeException(
-				"Failed to start container {$containerName}: " . implode("\n", $output)
-			);
-		}
-		
-		// Wait a moment for container to be ready
-		sleep(1);
-	}
-	
-	/**
-	 * Clean up existing project directory in container
-	 * @param string $containerName
-	 */
-	private function cleanProjectDirectory(string $containerName): void {
-		if ($this->verbose) {
-			echo "Cleaning project directory...\n";
-		}
-		
-		// Remove existing project directory if it exists
-		$this->execInContainer($containerName, 'rm -rf /home/jenkins/project');
 	}
 	
 	/**
 	 * Copy project files to container
 	 * @param Project $project
-	 * @param string $containerName
+	 * @param Container $container
 	 * @throws RuntimeException
 	 */
-	private function copyProjectFiles(Project $project, string $containerName): void {
-		if ($this->verbose) {
-			echo "Copying project files...\n";
-		}
+	private function copyProjectFiles(Project $project, Container $container): void {
+		echo "Copying project files...\n";
 		
 		$tempDir = $this->createTempCopy($project->getPath());
 		
 		try {
-			$cmd = "docker cp {$tempDir}/. {$containerName}:/home/jenkins/project/ 2>&1";
-			$output = [];
-			exec($cmd, $output, $exitCode);
-			
-			if ($exitCode !== 0) {
-				throw new RuntimeException(
-					"Failed to copy files to container: " . implode("\n", $output)
-				);
-			}
+			$container->copy($tempDir . '/.', '{container}:/home/jenkins/project/');
 		} finally {
 			$this->removeTempDir($tempDir);
 		}
+		
+		echo "✓ Project files copied\n";
 	}
 	
 	/**
@@ -271,54 +177,6 @@ class TestRunner {
 	}
 	
 	/**
-	 * Execute a command in a container
-	 * @param string $containerName
-	 * @param string $command
-	 * @return CommandResult
-	 */
-	private function execInContainer(string $containerName, string $command): CommandResult {
-		if ($this->verbose) {
-			echo "Executing: {$command}\n";
-		}
-		
-		$escapedCommand = escapeshellarg($command);
-		$cmd = "docker exec {$containerName} bash -c {$escapedCommand} 2>&1";
-		
-		$output = [];
-		$exitCode = 0;
-		exec($cmd, $output, $exitCode);
-		
-		$outputStr = implode("\n", $output);
-		
-		if ($this->verbose && !empty($outputStr)) {
-			echo $outputStr . "\n";
-		}
-		
-		return new CommandResult(
-			$exitCode === 0,
-			$exitCode,
-			$outputStr,
-			$command
-		);
-	}
-	
-	/**
-	 * Stop and remove a container
-	 * @param string $containerName
-	 */
-	private function stopAndRemoveContainer(string $containerName): void {
-		if ($this->verbose) {
-			echo "Cleaning up container {$containerName}...\n";
-		}
-		
-		// Stop container
-		exec("docker stop {$containerName} 2>&1", $output, $exitCode);
-		
-		// Remove container
-		exec("docker rm {$containerName} 2>&1", $output, $exitCode);
-	}
-	
-	/**
 	 * Create the volume if it doesn't exist
 	 * @throws RuntimeException
 	 */
@@ -327,9 +185,7 @@ class TestRunner {
 		exec("docker volume inspect {$this->volumeName} 2>&1", $output, $exitCode);
 		
 		if ($exitCode !== 0) {
-			if ($this->verbose) {
-				echo "Creating volume {$this->volumeName}...\n";
-			}
+			echo "Creating volume {$this->volumeName}...\n";
 			
 			exec("docker volume create {$this->volumeName} 2>&1", $output, $exitCode);
 			
@@ -339,6 +195,49 @@ class TestRunner {
 				);
 			}
 		}
+	}
+	
+	/**
+	 * Get total number of tests run
+	 * @return int
+	 */
+	public function getTotalTests(): int {
+		return $this->totalTests;
+	}
+	
+	/**
+	 * Get number of passed tests
+	 * @return int
+	 */
+	public function getPassedTests(): int {
+		return $this->passedTests;
+	}
+	
+	/**
+	 * Get number of failed tests
+	 * @return int
+	 */
+	public function getFailedTests(): int {
+		return $this->failedTests;
+	}
+	
+	/**
+	 * Print test summary
+	 */
+	public function printSummary(): void {
+		echo "\n" . str_repeat('=', 70) . "\n";
+		echo "TEST SUMMARY\n";
+		echo str_repeat('=', 70) . "\n";
+		echo "Total:  {$this->totalTests}\n";
+		echo "Passed: {$this->passedTests}\n";
+		echo "Failed: {$this->failedTests}\n";
+		
+		if ($this->failedTests === 0 && $this->totalTests > 0) {
+			echo "\n✓ All tests passed!\n";
+		} elseif ($this->failedTests > 0) {
+			echo "\n✗ Some tests failed\n";
+		}
+		echo str_repeat('=', 70) . "\n";
 	}
 }
 

@@ -18,13 +18,11 @@ use plibv4\Project;
  */
 class Main {
 	private Projects $projects;
-	private ?DockerBuilds $dockerfiles = null;
+	private ?Containers $containers = null;
 	private ?TestRunner $testRunner = null;
 	private int $completeCount = 0;
 	private int $incompleteCount = 0;
 	private bool $runTests = false;
-	/** @var list<TestResult> */
-	private array $testResults = [];
 	
 	/**
 	 * Constructor
@@ -37,13 +35,12 @@ class Main {
 	/**
 	 * Enable test execution
 	 * @param string $dockerfilesPath Path to dockerfiles directory
-	 * @param bool $verbose Enable verbose output
+	 * @param string $imagePrefix Image prefix for containers (default: 'plibv4-test')
 	 */
-	public function enableTests(string $dockerfilesPath, bool $verbose = false): void {
+	public function enableTests(string $dockerfilesPath, string $imagePrefix = 'plibv4-test'): void {
 		$this->runTests = true;
-		$this->dockerfiles = new DockerBuilds($dockerfilesPath);
+		$this->containers = Containers::fromDistributions($dockerfilesPath, $imagePrefix);
 		$this->testRunner = new TestRunner();
-		$this->testRunner->setVerbose($verbose);
 		$this->testRunner->ensureVolumeExists();
 	}
 	
@@ -70,7 +67,7 @@ class Main {
 		$this->printSummary();
 		
 		if ($this->runTests) {
-			return $this->hasTestFailures() ? 1 : 0;
+			return $this->testRunner->getFailedTests() > 0 ? 1 : 0;
 		}
 		
 		return $this->incompleteCount > 0 ? 1 : 0;
@@ -80,39 +77,25 @@ class Main {
 	 * Run tests on all projects
 	 */
 	private function runTestsOnProjects(): void {
-		if ($this->dockerfiles === null || $this->testRunner === null) {
+		if ($this->containers === null || $this->testRunner === null) {
 			return;
 		}
 		
 		echo "Running tests on " . $this->projects->getCount() . " project(s) " .
-		     "across " . $this->dockerfiles->getCount() . " environment(s)...\n\n";
+		     "across " . $this->containers->getCount() . " environment(s)...\n\n";
 		
-		for($i = 0; $i<$this->projects->getCount();$i++) {
-			$project = $this->projects->getProject($i);
-			$projectName = $project->getName();
-			
-			foreach ($this->dockerfiles->getDockerfiles() as $dockerfile) {
-				echo "Testing {$projectName} on {$dockerfile}...\n";
-				
-				$result = $this->testRunner->runTest($project, $dockerfile);
-				$this->testResults[] = $result;
-				
-				echo $result->getSummary();
+		try {
+			for($i = 0; $i<$this->projects->getCount();$i++) {
+				$project = $this->projects->getProject($i);
+				$this->testRunner->runTests($project, $this->containers);
 			}
+		} finally {
+			// Cleanup: stop and delete all containers
+			echo "\nCleaning up containers...\n";
+			$this->containers->stopAll();
+			$this->containers->deleteAll();
+			echo "Cleanup complete.\n";
 		}
-	}
-	
-	/**
-	 * Check if any tests failed
-	 * @return bool
-	 */
-	private function hasTestFailures(): bool {
-		foreach ($this->testResults as $result) {
-			if (!$result->isSuccess()) {
-				return true;
-			}
-		}
-		return false;
 	}
 	
 	/**
@@ -174,28 +157,15 @@ class Main {
 	 * Print the summary
 	 */
 	private function printSummary(): void {
-		echo "\n" . str_repeat("=", 70) . "\n";
-		echo "Summary:\n";
-		
-		if ($this->runTests) {
-			$passed = 0;
-			$failed = 0;
-			
-			foreach ($this->testResults as $result) {
-				if ($result->isSuccess()) {
-					$passed++;
-				} else {
-					$failed++;
-				}
-			}
-			
-			echo "  Tests passed: {$passed}\n";
-			echo "  Tests failed: {$failed}\n";
-			echo "  Total tests:  " . count($this->testResults) . "\n";
+		if ($this->runTests && $this->testRunner !== null) {
+			$this->testRunner->printSummary();
 		} else {
+			echo "\n" . str_repeat("=", 70) . "\n";
+			echo "Summary:\n";
 			echo "  Complete projects:   {$this->completeCount}\n";
 			echo "  Incomplete projects: {$this->incompleteCount}\n";
 			echo "  Total projects:      " . $this->projects->getCount() . "\n";
+			echo str_repeat("=", 70) . "\n";
 		}
 	}
 	
@@ -224,11 +194,11 @@ class Main {
 	}
 	
 	/**
-	 * Get test results
-	 * @return list<TestResult>
+	 * Get the TestRunner instance
+	 * @return TestRunner|null
 	 */
-	public function getTestResults(): array {
-		return $this->testResults;
+	public function getTestRunner(): ?TestRunner {
+		return $this->testRunner;
 	}
 }
 
