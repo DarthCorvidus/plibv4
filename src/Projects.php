@@ -126,6 +126,33 @@ class Projects {
 	}
 	
 	/**
+	 * Filter projects by name (supports comma-separated list)
+	 *
+	 * Filters the project collection to only include projects whose names
+	 * match any of the provided names. Modifies the collection in place.
+	 *
+	 * @param list<string> $names Array of project names to keep
+	 * @return int Number of projects removed
+	 */
+	public function filterProjects(array $names): int {
+		$originalCount = count($this->projects);
+		$newProjectNames = [];
+		$newProjects = [];
+		
+		foreach ($this->projects as $i => $project) {
+			if (in_array($this->projectNames[$i], $names, true)) {
+				$newProjectNames[] = $this->projectNames[$i];
+				$newProjects[] = $project;
+			}
+		}
+		
+		$this->projectNames = $newProjectNames;
+		$this->projects = $newProjects;
+		
+		return $originalCount - count($this->projects);
+	}
+	
+	/**
 	 * Remove all incomplete projects from the collection
 	 *
 	 * This method filters out projects that don't have all three required files
