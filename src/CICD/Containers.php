@@ -114,6 +114,27 @@ class Containers {
 	}
 	
 	/**
+	 * Get containers filtered by annotation key matching any of the provided values
+	 * @param string $key Annotation key to filter by
+	 * @param list<string> $values Array of acceptable values (OR logic)
+	 * @return self New Containers instance with matching containers
+	 */
+	public function getByAnnotation(string $key, array $values): self {
+		$filtered = new self();
+		
+		foreach ($this->containers as $container) {
+			if ($container->hasAnnotation($key)) {
+				$annotationValue = $container->getAnnotation($key);
+				if (in_array($annotationValue, $values, true)) {
+					$filtered->addContainer($container);
+				}
+			}
+		}
+		
+		return $filtered;
+	}
+	
+	/**
 	 * Stop all containers in the collection
 	 * Continues even if individual containers fail to stop
 	 */

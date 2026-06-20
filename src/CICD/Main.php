@@ -9,6 +9,7 @@ namespace plibv4\CICD;
 
 use plibv4\Projects;
 use plibv4\Project;
+use plibv4\argv\Argv;
 
 /**
  * Main CICD checker class
@@ -23,13 +24,23 @@ class Main {
 	private int $completeCount = 0;
 	private int $incompleteCount = 0;
 	private bool $runTests = false;
+	private Argv $argv;
+	private bool $noCleanup = false;
 	
 	/**
 	 * Constructor
 	 * @param string $basePath Base path to scan for projects
+	 * @param array<int, string> $argv Command-line arguments
 	 */
-	public function __construct(string $basePath) {
+	public function __construct(string $basePath, array $argv) {
 		$this->projects = new Projects($basePath);
+		
+		// Parse command-line arguments
+		$model = new ArgvCICD();
+		$this->argv = new Argv($argv, $model);
+		
+		// Check for no-cleanup flag
+		$this->noCleanup = $this->argv->getBoolean('no-cleanup');
 	}
 	
 	/**
@@ -40,8 +51,33 @@ class Main {
 	public function enableTests(string $dockerfilesPath, string $imagePrefix = 'plibv4-test'): void {
 		$this->runTests = true;
 		$this->containers = Containers::fromDistributions($dockerfilesPath, $imagePrefix);
+		
+		// Filter containers based on command-line arguments
+		$this->containers = $this->filterContainers($this->containers);
+		
 		$this->testRunner = new TestRunner();
 		$this->testRunner->ensureVolumeExists();
+	}
+	
+	/**
+	 * Filter containers based on command-line arguments
+	 * @param Containers $containers
+	 * @return Containers Filtered containers
+	 */
+	private function filterContainers(Containers $containers): Containers {
+		// Handle --distro argument (can be comma-separated)
+		if ($this->argv->hasValue('distros')) {
+			$distros = array_map('trim', explode(',', $this->argv->getValue('distros')));
+			$containers = $containers->getByAnnotation('distribution', $distros);
+		}
+		
+		// Handle --version argument
+		if ($this->argv->hasValue('versions')) {
+			$versions = array_map('trim', explode(',', $this->argv->getValue('versions')));
+			$containers = $containers->getByAnnotation('version', $versions);
+		}
+		
+		return $containers;
 	}
 	
 	/**
@@ -90,11 +126,15 @@ class Main {
 				$this->testRunner->runTests($project, $this->containers);
 			}
 		} finally {
-			// Cleanup: stop and delete all containers
-			echo "\nCleaning up containers...\n";
-			$this->containers->stopAll();
-			$this->containers->deleteAll();
-			echo "Cleanup complete.\n";
+			// Cleanup: stop and delete all containers (unless --no-cleanup is set)
+			if (!$this->noCleanup) {
+				echo "\nCleaning up containers...\n";
+				$this->containers->stopAll();
+				$this->containers->deleteAll();
+				echo "Cleanup complete.\n";
+			} else {
+				echo "\nSkipping cleanup (--no-cleanup flag set)\n";
+			}
 		}
 	}
 	

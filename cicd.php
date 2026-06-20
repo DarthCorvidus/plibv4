@@ -12,7 +12,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 use plibv4\CICD\Main;
 
 // Create and run CICD checker
-$main = new Main(__DIR__);
+$main = new Main(__DIR__, $argv);
 $main->enableTests('cicd/dockerfiles', 'plibv4-test');
 $exitCode = $main->run();
 
