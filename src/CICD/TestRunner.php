@@ -46,7 +46,6 @@ class TestRunner {
 	 * @param Container $container
 	 */
 	public function runTest(Project $project, Container $container): void {
-		$this->totalTests++;
 		$containerName = $container->getName();
 		
 		echo "\n" . str_repeat('=', 70) . "\n";
@@ -65,46 +64,31 @@ class TestRunner {
 			// 3. Copy project files
 			$this->copyProjectFiles($project, $container);
 			
-			// 4. Run composer install
-			echo "Running composer install...\n";
-			$installResult = $container->exec('cd /home/jenkins/project && composer install');
-			
-			if (!$installResult->isSuccess()) {
-				echo "✗ Composer install failed (exit code: {$installResult->getExitCode()})\n";
-				$this->failedTests++;
-				return;
-			}
-			echo "✓ Composer install successful\n";
-			
-			// 5. Run tests
-			echo "Running tests...\n";
-			$testResult = $container->exec('cd /home/jenkins/project && composer test');
-			
-			if (!$testResult->isSuccess()) {
-				echo "✗ Tests failed (exit code: {$testResult->getExitCode()})\n";
-				$this->failedTests++;
-				return;
-			}
-			echo "✓ Tests passed\n";
-			
-			// 6. Run psalm
-			echo "Running psalm...\n";
-			$psalmResult = $container->exec('cd /home/jenkins/project && composer psalm');
-			
-			if (!$psalmResult->isSuccess()) {
-				echo "✗ Psalm failed (exit code: {$psalmResult->getExitCode()})\n";
-				$this->failedTests++;
-				return;
-			}
-			echo "✓ Psalm passed\n";
-			
-			// All tests passed
-			$this->passedTests++;
-			echo "\n✓ All tests passed on {$containerName}\n";
-			
+			// 4. Run composer commands
+			$this->runComposerCommands($container);
 		} catch (RuntimeException $e) {
 			echo "✗ Error: {$e->getMessage()}\n";
 			$this->failedTests++;
+		}
+	}
+	
+	/**
+	 * Run composer commands (install, test, psalm) in the container
+	 * @param Container $container
+	 */
+	private function runComposerCommands(Container $container): void {
+		$composer = ["install", "test", "psalm"];
+		foreach($composer as $value) {
+			$this->totalTests++;
+			echo "Running composer ".$value."...";
+			$result = $container->exec('cd /home/jenkins/project && composer '.$value);
+			if(!$result->isSuccess()) {
+				echo "FAIL".PHP_EOL;
+				$this->failedTests++;
+				continue;
+			}
+			echo "PASS".PHP_EOL;
+			$this->passedTests++;
 		}
 	}
 	
