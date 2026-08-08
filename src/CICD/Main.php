@@ -88,6 +88,11 @@ class Main {
 		// Prune incomplete projects
 		$pruned = $this->projects->prune();
 		
+		if($this->argv->hasValue("projects")) {
+			$projects = array_map('trim', explode(',', $this->argv->getValue('projects')));
+			$this->projects->filterProjects($projects);
+		}
+
 		$this->printHeader();
 		
 		if ($pruned > 0) {
