@@ -1,4 +1,4 @@
-plibv4 - a PHP library
+# plibv4 - a PHP library
 
 plibv4 stands for „PHP Library, Version 4“. It is partly a rewrite of libraries
 I wrote earlier and mostly used in the context of one employer. While all
@@ -15,3 +15,13 @@ At the moment, every plibv4 itself and every plibv4-* repository is constructed
 primarily with development in mind, and none of them should be used in
 production unless marked otherwise.
 
+## AI-Disclosure
+
+Some parts of the plibv4 administrative project - ie code in this repository -
+was created using AI. AI followed detailed instructions and all code was
+reviewed and refactored if necessary.
+
+Main AI components are **cicd.php** and code used by **cicd.php**.
+
+For AI Disclosure regarding distinct plibv4 projects, different rules may
+apply, refer to project READMEs for details.
