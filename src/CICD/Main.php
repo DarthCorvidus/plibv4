@@ -89,10 +89,8 @@ class Main {
 		$pruned = $this->projects->prune();
 		
 		if($this->argv->hasValue("projects")) {
-			$projects = array_map('trim', explode(',', $this->argv->getValue('projects')));
-			$this->projects->filterProjects($projects);
+			$this->filterProjects();
 		}
-
 		$this->printHeader();
 		
 		if ($pruned > 0) {
@@ -114,6 +112,17 @@ class Main {
 		return $this->incompleteCount > 0 ? 1 : 0;
 	}
 	
+	private function filterProjects(): void {
+		$projects = array_map('trim', explode(',', $this->argv->getValue('projects')));
+		foreach ($projects as $projectName) {
+			if (!$this->projects->hasProject($projectName)) {
+				echo "Error: project '{$projectName}' not found\n";
+				exit(1);
+			}
+		}
+		$this->projects->filterProjects($projects);
+	}
+
 	/**
 	 * Run tests on all projects
 	 */
