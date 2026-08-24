@@ -183,4 +183,14 @@ final class Projects {
 		
 		return $originalCount - count($this->projects);
 	}
+
+	function getIncompleteProjects(): Projects {
+		$projects = new Projects();
+		foreach ($this->projects as $i => $project) {
+			if (!$project->isComplete()) {
+				$projects->add($project);
+			}
+		}
+	return $projects;
+	}
 }
