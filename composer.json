@@ -1,5 +1,6 @@
 {
 	"minimum-stability": "dev",
+	"prefer-stable": true,
 	"repositories": [
 		{
 			"type": "vcs",
@@ -76,15 +77,12 @@
 	       }
 	   },
 	"require-dev": {
-		"phpunit/phpunit": "^7"
+		"phpunit/phpunit": "^9",
+		"vimeo/psalm": "^6"
 	},
 	"scripts": {
 		"test": "./vendor/bin/phpunit --bootstrap vendor/autoload.php tests",
+		"psalm": "./vendor/bin/psalm --show-info=true --no-cache",
 		"testdox-assert": "./vendor/bin/phpunit --bootstrap vendor/autoload.php --testdox --colors=always vendor/plibv4/assert"
-	},
-	"config": {
-		"platform": {
-			"php": "7.3"
-		}
 	}
 }
