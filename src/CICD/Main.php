@@ -41,6 +41,10 @@ class Main {
 		
 		// Check for no-cleanup flag
 		$this->noCleanup = $this->argv->getBoolean('no-cleanup');
+		if($this->argv->getBoolean("status")) {
+			$this->printStatus();
+			exit(0);
+		}
 	}
 	
 	/**
@@ -59,6 +63,13 @@ class Main {
 		$this->testRunner->ensureVolumeExists();
 	}
 	
+	public function printStatus(): void {
+		$incomplete = $this->projects->getIncompleteProjects();
+		for($i=0;$i<$incomplete->getCount();$i++) {
+			echo $incomplete->getProject($i)->getName().PHP_EOL;
+		}
+	}
+
 	/**
 	 * Filter containers based on command-line arguments
 	 * @param Containers $containers

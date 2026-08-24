@@ -25,6 +25,7 @@ class ArgvCICD extends ArgvGeneric {
 	public function __construct() {
 		// Add boolean flag
 		$this->addBooleanArg('no-cleanup');
+		$this->addBooleanArg('status');
 		
 		// Add optional distro filter
 		$distro = UserValue::asOptional();
