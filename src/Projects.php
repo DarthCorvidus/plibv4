@@ -53,14 +53,18 @@ final class Projects {
 			if(!str_starts_with($item, 'plibv4-')) {
 				continue;
 			}
-			$instance->projectNames[] = $item;
-			$instance->projects[] = new Project($fullPath);
+			$instance->add(new Project($fullPath));
 		}
 		sort($instance->projectNames);
 		// Sort projects array by the same order
 		array_multisort($instance->projectNames, $instance->projects);
 
 		return $instance;
+	}
+
+	function add(Project $project): void {
+		$this->projects[] = $project;
+		$this->projectNames[] = $project->getName();
 	}
 	
 	/**
