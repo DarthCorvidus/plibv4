@@ -14,18 +14,12 @@ use RuntimeException;
  * Projects enumerates all folders beginning with plibv- in the NetBeansProjects directory
  */
 final class Projects {
-	private string $basePath;
 	/** @var list<string> */
 	private array $projectNames = [];
 	/** @var list<Project> */
 	private array $projects = [];
 	
-	/**
-	 * Constructor
-	 * @param string $basePath Base path the projects were scanned from
-	 */
-	public function __construct(string $basePath) {
-		$this->basePath = rtrim($basePath, '/') . '/';
+	public function __construct() {
 	}
 
 	/**
@@ -39,9 +33,9 @@ final class Projects {
 		if(!is_dir($basePath)) {
 			throw new RuntimeException("base path {$basePath} is not a directory");
 		}
-		$instance = new self($basePath);
+		$instance = new self();
 
-		$items = scandir($instance->basePath);
+		$items = scandir($basePath);
 		if ($items === false) {
 			return $instance;
 		}
@@ -51,12 +45,16 @@ final class Projects {
 				continue;
 			}
 
-			$fullPath = $instance->basePath . $item;
+			$fullPath = $basePath."/".$item;
 			// Check if it's a directory and starts with "plibv4-"
-			if (is_dir($fullPath) && str_starts_with($item, 'plibv4-')) {
-				$instance->projectNames[] = $item;
-				$instance->projects[] = new Project($fullPath);
+			if(!is_dir($fullPath)) {
+				continue;
 			}
+			if(!str_starts_with($item, 'plibv4-')) {
+				continue;
+			}
+			$instance->projectNames[] = $item;
+			$instance->projects[] = new Project($fullPath);
 		}
 		sort($instance->projectNames);
 		// Sort projects array by the same order
@@ -92,8 +90,8 @@ final class Projects {
 	 */
 	public function getProjectPaths(): array {
 		$paths = [];
-		foreach ($this->projectNames as $projectName) {
-			$paths[] = $this->basePath . $projectName;
+		foreach ($this->projects as $project) {
+			$paths[] = $project->getPath();
 		}
 		return $paths;
 	}
