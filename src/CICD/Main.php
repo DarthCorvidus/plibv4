@@ -33,7 +33,7 @@ class Main {
 	 * @param array<int, string> $argv Command-line arguments
 	 */
 	public function __construct(string $basePath, array $argv) {
-		$this->projects = new Projects($basePath);
+		$this->projects = Projects::fromDirectories($basePath);
 		
 		// Parse command-line arguments
 		$model = new ArgvCICD();

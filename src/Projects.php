@@ -22,43 +22,47 @@ final class Projects {
 	
 	/**
 	 * Constructor
-	 * @param string $basePath Base path to scan for plibv-* folders (default: /home/hm/NetBeansProjects/)
+	 * @param string $basePath Base path the projects were scanned from
 	 */
 	public function __construct(string $basePath) {
+		$this->basePath = rtrim($basePath, '/') . '/';
+	}
+
+	/**
+	 * Build a Projects instance by scanning a directory for plibv4-* folders
+	 * @param string $basePath Base path to scan for plibv-* folders (default: /home/hm/NetBeansProjects/)
+	 */
+	public static function fromDirectories(string $basePath): self {
 		if(!file_exists($basePath)) {
 			throw new RuntimeException("base path {$basePath} does not exist");
 		}
 		if(!is_dir($basePath)) {
 			throw new RuntimeException("base path {$basePath} is not a directory");
 		}
-		$this->basePath = rtrim($basePath, '/') . '/';
-		$this->scanProjects();
-	}
-	
-	/**
-	 * Scan the base path for directories beginning with plibv-
-	 */
-	private function scanProjects(): void {
-		$items = scandir($this->basePath);
+		$instance = new self($basePath);
+
+		$items = scandir($instance->basePath);
 		if ($items === false) {
-			return;
+			return $instance;
 		}
-		
+
 		foreach ($items as $item) {
 			if ($item === '.' || $item === '..') {
 				continue;
 			}
-			
-			$fullPath = $this->basePath . $item;
+
+			$fullPath = $instance->basePath . $item;
 			// Check if it's a directory and starts with "plibv4-"
 			if (is_dir($fullPath) && str_starts_with($item, 'plibv4-')) {
-				$this->projectNames[] = $item;
-				$this->projects[] = new Project($fullPath);
+				$instance->projectNames[] = $item;
+				$instance->projects[] = new Project($fullPath);
 			}
 		}
-		sort($this->projectNames);
+		sort($instance->projectNames);
 		// Sort projects array by the same order
-		array_multisort($this->projectNames, $this->projects);
+		array_multisort($instance->projectNames, $instance->projects);
+
+		return $instance;
 	}
 	
 	/**
