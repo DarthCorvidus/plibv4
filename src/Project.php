@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Project represents a single plibv project
  */
-class Project {
+final class Project {
 	private string $path;
 	
 	/**

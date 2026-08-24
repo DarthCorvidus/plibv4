@@ -13,7 +13,7 @@ use RuntimeException;
 /**
  * Projects enumerates all folders beginning with plibv- in the NetBeansProjects directory
  */
-class Projects {
+final class Projects {
 	private string $basePath;
 	/** @var list<string> */
 	private array $projectNames = [];
