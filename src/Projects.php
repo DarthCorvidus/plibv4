@@ -193,4 +193,15 @@ final class Projects {
 		}
 	return $projects;
 	}
+
+	function getCompleteProjects(): Projects {
+		$projects = new Projects();
+		foreach ($this->projects as $i => $project) {
+			if ($project->isComplete()) {
+				$projects->add($project);
+			}
+		}
+	return $projects;
+	}
+
 }

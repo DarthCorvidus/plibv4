@@ -64,10 +64,18 @@ class Main {
 	}
 	
 	public function printStatus(): void {
+		echo "Incomplete Projects:".PHP_EOL;
 		$incomplete = $this->projects->getIncompleteProjects();
 		for($i=0;$i<$incomplete->getCount();$i++) {
-			echo $incomplete->getProject($i)->getName().PHP_EOL;
+			echo "\t".$incomplete->getProject($i)->getName().PHP_EOL;
 		}
+
+		echo "Complete Projects:".PHP_EOL;
+		$incomplete = $this->projects->getCompleteProjects();
+		for($i=0;$i<$incomplete->getCount();$i++) {
+			echo "\t".$incomplete->getProject($i)->getName().PHP_EOL;
+		}
+
 	}
 
 	/**
