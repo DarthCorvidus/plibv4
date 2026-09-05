@@ -23,7 +23,6 @@ class Main {
 	private ?TestRunner $testRunner = null;
 	private int $completeCount = 0;
 	private int $incompleteCount = 0;
-	private bool $runTests = false;
 	private Argv $argv;
 	private bool $noCleanup = false;
 	
@@ -45,16 +44,7 @@ class Main {
 			$this->printStatus();
 			exit(0);
 		}
-	}
-	
-	/**
-	 * Enable test execution
-	 * @param string $dockerfilesPath Path to dockerfiles directory
-	 * @param string $imagePrefix Image prefix for containers (default: 'plibv4-test')
-	 */
-	public function enableTests(string $dockerfilesPath, string $imagePrefix = 'plibv4-test'): void {
-		$this->runTests = true;
-		$this->containers = Containers::fromDistributions($dockerfilesPath, $imagePrefix);
+		$this->containers = Containers::fromDistributions($basePath.'/cicd/dockerfiles', "plibv4-test");
 		
 		// Filter containers based on command-line arguments
 		$this->containers = $this->filterContainers($this->containers);
@@ -62,7 +52,7 @@ class Main {
 		$this->testRunner = new TestRunner();
 		$this->testRunner->ensureVolumeExists();
 	}
-	
+
 	public function printStatus(): void {
 		echo "Incomplete Projects:".PHP_EOL;
 		$incomplete = $this->projects->getIncompleteProjects();
@@ -98,20 +88,7 @@ class Main {
 		
 		return $containers;
 	}
-	
-	/**
-	 * Run the CICD check
-	 * @return int Exit code (0 for success, 1 if incomplete projects found)
-	 */
-	public function run(): void {
-		if ($this->runTests) {
-			$this->runTests();
-			$this->printSummary();
-		return;
-		}
-		$this->checkProjects();
-	}
-	
+
 	private function filterProjects(): Projects {
 		if(!$this->argv->hasValue("projects")) {
 			return $this->projects;
@@ -129,9 +106,9 @@ class Main {
 	/**
 	 * Run tests on all projects
 	 */
-	private function runTests(): void {
+	function run(): int {
 		if ($this->containers === null || $this->testRunner === null) {
-			return;
+			return 1;
 		}
 		$projects = $this->filterProjects();
 		$testable = $projects->getCompleteProjects();
@@ -144,90 +121,21 @@ class Main {
 				$project = $testable->getProject($i);
 				$this->testRunner->runTests($project, $this->containers);
 			}
+			$this->testRunner->printSummary();
 		} finally {
 			// Cleanup: stop and delete all containers (unless --no-cleanup is set)
-			if (!$this->noCleanup) {
-				echo "\nCleaning up containers...\n";
-				$this->containers->stopAll();
-				$this->containers->deleteAll();
-				echo "Cleanup complete.\n";
-			} else {
+			if ($this->noCleanup) {
 				echo "\nSkipping cleanup (--no-cleanup flag set)\n";
+			return $this->testRunner->getFailedTests() > 0 ? 1 : 0;
 			}
+			echo "\nCleaning up containers...\n";
+			$this->containers->stopAll();
+			$this->containers->deleteAll();
+			echo "Cleanup complete.\n";
+		return $this->testRunner->getFailedTests() > 0 ? 1 : 0;
 		}
 	}
-	
-	/**
-	 * Print the header
-	 */
-	private function printHeader(): void {
-		echo "Checking plibv4-* projects for completeness...\n";
-		echo str_repeat("=", 70) . "\n\n";
-	}
-	
-	/**
-	 * Check all projects and display results
-	 */
-	private function checkProjects(): void {
-		foreach ($this->projects->getProjects() as $i => $projectName) {
-			$project = $this->projects->getProject($i);
-			
-			if ($project->isComplete()) {
-				$this->completeCount++;
-				$this->printCompleteProject($projectName);
-			} else {
-				$this->incompleteCount++;
-				$this->printIncompleteProject($projectName, $project);
-			}
-		}
-	}
-	
-	/**
-	 * Print a complete project
-	 * @param string $projectName
-	 */
-	private function printCompleteProject(string $projectName): void {
-		echo "✓ {$projectName}\n";
-	}
-	
-	/**
-	 * Print an incomplete project with missing files
-	 * @param string $projectName
-	 * @param Project $project
-	 */
-	private function printIncompleteProject(string $projectName, Project $project): void {
-		echo "✗ {$projectName}\n";
-		
-		$missing = [];
-		if (!$project->hasComposer()) {
-			$missing[] = "composer.json";
-		}
-		if (!$project->hasPHPUnit()) {
-			$missing[] = "phpunit.xml";
-		}
-		if (!$project->hasPsalm()) {
-			$missing[] = "psalm.xml";
-		}
-		
-		echo "  Missing: " . implode(", ", $missing) . "\n";
-	}
-	
-	/**
-	 * Print the summary
-	 */
-	private function printSummary(): void {
-		if ($this->runTests && $this->testRunner !== null) {
-			$this->testRunner->printSummary();
-		} else {
-			echo "\n" . str_repeat("=", 70) . "\n";
-			echo "Summary:\n";
-			echo "  Complete projects:   {$this->completeCount}\n";
-			echo "  Incomplete projects: {$this->incompleteCount}\n";
-			echo "  Total projects:      " . $this->projects->getCount() . "\n";
-			echo str_repeat("=", 70) . "\n";
-		}
-	}
-	
+
 	/**
 	 * Get the number of complete projects
 	 * @return int
