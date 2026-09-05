@@ -84,6 +84,11 @@ class TestRunner {
 			$result = $container->exec('cd /home/jenkins/project && composer '.$value);
 			if(!$result->isSuccess()) {
 				echo "FAIL".PHP_EOL;
+				echo str_repeat("=", 80).PHP_EOL;
+				echo "Failed command output:".PHP_EOL;
+				echo str_repeat("=", 80).PHP_EOL;
+				echo $result->getOutput().PHP_EOL;
+				echo str_repeat("=", 80).PHP_EOL;
 				$this->failedTests++;
 				continue;
 			}
