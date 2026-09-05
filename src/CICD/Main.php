@@ -104,20 +104,21 @@ class Main {
 	 * @return int Exit code (0 for success, 1 if incomplete projects found)
 	 */
 	public function run(): int {
-		// Prune incomplete projects
-		$pruned = $this->projects->prune();
+		// get testable projects
+		$testable = $this->projects->getCompleteProjects();
+
 		
 		if($this->argv->hasValue("projects")) {
 			$this->filterProjects();
 		}
 		$this->printHeader();
 		
-		if ($pruned > 0) {
-			echo "Pruned {$pruned} incomplete project(s)\n\n";
+		if ($testable->getCount() > 0) {
+			echo "Ignored {$testable->getCount()} incomplete project(s)\n\n";
 		}
 		
 		if ($this->runTests) {
-			$this->runTestsOnProjects();
+			$this->runTestsOnProjects($testable);
 		} else {
 			$this->checkProjects();
 		}
@@ -145,17 +146,17 @@ class Main {
 	/**
 	 * Run tests on all projects
 	 */
-	private function runTestsOnProjects(): void {
+	private function runTestsOnProjects(Projects $projects): void {
 		if ($this->containers === null || $this->testRunner === null) {
 			return;
 		}
 		
-		echo "Running tests on " . $this->projects->getCount() . " project(s) " .
+		echo "Running tests on " . $projects->getCount() . " project(s) " .
 		     "across " . $this->containers->getCount() . " environment(s)...\n\n";
 		
 		try {
-			for($i = 0; $i<$this->projects->getCount();$i++) {
-				$project = $this->projects->getProject($i);
+			for($i = 0; $i<$projects->getCount();$i++) {
+				$project = $projects->getProject($i);
 				$this->testRunner->runTests($project, $this->containers);
 			}
 		} finally {

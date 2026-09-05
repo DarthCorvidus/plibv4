@@ -158,32 +158,6 @@ final class Projects {
 		return $originalCount - count($this->projects);
 	}
 	
-	/**
-	 * Remove all incomplete projects from the collection
-	 *
-	 * This method filters out projects that don't have all three required files
-	 * (composer.json, phpunit.xml, and psalm.xml), keeping only complete projects.
-	 *
-	 * @return int Number of projects removed
-	 */
-	public function prune(): int {
-		$originalCount = count($this->projects);
-		$newProjectNames = [];
-		$newProjects = [];
-		
-		foreach ($this->projects as $i => $project) {
-			if ($project->isComplete()) {
-				$newProjectNames[] = $this->projectNames[$i];
-				$newProjects[] = $project;
-			}
-		}
-		
-		$this->projectNames = $newProjectNames;
-		$this->projects = $newProjects;
-		
-		return $originalCount - count($this->projects);
-	}
-
 	function getIncompleteProjects(): Projects {
 		$projects = new Projects();
 		foreach ($this->projects as $i => $project) {
