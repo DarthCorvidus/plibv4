@@ -105,14 +105,13 @@ class Main {
 	 */
 	public function run(): int {
 		// get testable projects
-		$testable = $this->projects->getCompleteProjects();
+		$testable = $this->projects->getCompleteProjects();		
 
-		
 		if($this->argv->hasValue("projects")) {
-			$this->filterProjects();
+			$testable = $this->filterProjects();
 		}
 		$this->printHeader();
-		
+
 		if ($testable->getCount() > 0) {
 			echo "Ignored {$testable->getCount()} incomplete project(s)\n\n";
 		}
@@ -132,7 +131,7 @@ class Main {
 		return $this->incompleteCount > 0 ? 1 : 0;
 	}
 	
-	private function filterProjects(): void {
+	private function filterProjects(): Projects {
 		$projects = array_map('trim', explode(',', $this->argv->getValue('projects')));
 		foreach ($projects as $projectName) {
 			if (!$this->projects->hasProject($projectName)) {
@@ -140,7 +139,7 @@ class Main {
 				exit(1);
 			}
 		}
-		$this->projects->filterProjects($projects);
+	return$this->projects->getByNames($projects);
 	}
 
 	/**

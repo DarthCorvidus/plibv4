@@ -138,24 +138,13 @@ final class Projects {
 	 * match any of the provided names. Modifies the collection in place.
 	 *
 	 * @param list<string> $names Array of project names to keep
-	 * @return int Number of projects removed
 	 */
-	public function filterProjects(array $names): int {
-		$originalCount = count($this->projects);
-		$newProjectNames = [];
-		$newProjects = [];
-		
-		foreach ($this->projects as $i => $project) {
-			if (in_array($this->projectNames[$i], $names, true)) {
-				$newProjectNames[] = $this->projectNames[$i];
-				$newProjects[] = $project;
-			}
+	public function getByNames(array $names): Projects {
+		$projects = new Projects();
+		foreach($names as $value) {
+			$projects->add($this->getByName($value));
 		}
-		
-		$this->projectNames = $newProjectNames;
-		$this->projects = $newProjects;
-		
-		return $originalCount - count($this->projects);
+	return $projects;
 	}
 	
 	function getIncompleteProjects(): Projects {
