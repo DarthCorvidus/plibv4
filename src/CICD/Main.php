@@ -103,35 +103,19 @@ class Main {
 	 * Run the CICD check
 	 * @return int Exit code (0 for success, 1 if incomplete projects found)
 	 */
-	public function run(): int {
-		// get testable projects
-		$testable = $this->projects->getCompleteProjects();		
-
-		if($this->argv->hasValue("projects")) {
-			$testable = $this->filterProjects();
-		}
-		$this->printHeader();
-
-		if ($testable->getCount() > 0) {
-			echo "Ignored {$testable->getCount()} incomplete project(s)\n\n";
-		}
-		
+	public function run(): void {
 		if ($this->runTests) {
-			$this->runTestsOnProjects($testable);
-		} else {
-			$this->checkProjects();
+			$this->runTests();
+			$this->printSummary();
+		return;
 		}
-		
-		$this->printSummary();
-		
-		if ($this->runTests) {
-			return $this->testRunner->getFailedTests() > 0 ? 1 : 0;
-		}
-		
-		return $this->incompleteCount > 0 ? 1 : 0;
+		$this->checkProjects();
 	}
 	
 	private function filterProjects(): Projects {
+		if(!$this->argv->hasValue("projects")) {
+			return $this->projects;
+		}
 		$projects = array_map('trim', explode(',', $this->argv->getValue('projects')));
 		foreach ($projects as $projectName) {
 			if (!$this->projects->hasProject($projectName)) {
@@ -139,23 +123,25 @@ class Main {
 				exit(1);
 			}
 		}
-	return$this->projects->getByNames($projects);
+	return $this->projects->getByNames($projects);
 	}
 
 	/**
 	 * Run tests on all projects
 	 */
-	private function runTestsOnProjects(Projects $projects): void {
+	private function runTests(): void {
 		if ($this->containers === null || $this->testRunner === null) {
 			return;
 		}
-		
-		echo "Running tests on " . $projects->getCount() . " project(s) " .
+		$projects = $this->filterProjects();
+		$testable = $projects->getCompleteProjects();
+
+		echo "Running tests on " . $testable->getCount() . " project(s) " .
 		     "across " . $this->containers->getCount() . " environment(s)...\n\n";
 		
 		try {
-			for($i = 0; $i<$projects->getCount();$i++) {
-				$project = $projects->getProject($i);
+			for($i = 0; $i<$testable->getCount();$i++) {
+				$project = $testable->getProject($i);
 				$this->testRunner->runTests($project, $this->containers);
 			}
 		} finally {
