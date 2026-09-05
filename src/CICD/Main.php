@@ -8,7 +8,6 @@
 namespace plibv4\CICD;
 
 use plibv4\Projects;
-use plibv4\Project;
 use plibv4\argv\Argv;
 
 /**
@@ -19,10 +18,8 @@ use plibv4\argv\Argv;
  */
 class Main {
 	private Projects $projects;
-	private ?Containers $containers = null;
-	private ?TestRunner $testRunner = null;
-	private int $completeCount = 0;
-	private int $incompleteCount = 0;
+	private Containers $containers;
+	private TestRunner $testRunner;
 	private Argv $argv;
 	private bool $noCleanup = false;
 	
@@ -107,9 +104,6 @@ class Main {
 	 * Run tests on all projects
 	 */
 	function run(): int {
-		if ($this->containers === null || $this->testRunner === null) {
-			return 1;
-		}
 		$projects = $this->filterProjects();
 		$testable = $projects->getCompleteProjects();
 
@@ -134,38 +128,6 @@ class Main {
 			echo "Cleanup complete.\n";
 		return $this->testRunner->getFailedTests() > 0 ? 1 : 0;
 		}
-	}
-
-	/**
-	 * Get the number of complete projects
-	 * @return int
-	 */
-	public function getCompleteCount(): int {
-		return $this->completeCount;
-	}
-	
-	/**
-	 * Get the number of incomplete projects
-	 * @return int
-	 */
-	public function getIncompleteCount(): int {
-		return $this->incompleteCount;
-	}
-	
-	/**
-	 * Get the Projects instance
-	 * @return Projects
-	 */
-	public function getProjects(): Projects {
-		return $this->projects;
-	}
-	
-	/**
-	 * Get the TestRunner instance
-	 * @return TestRunner|null
-	 */
-	public function getTestRunner(): ?TestRunner {
-		return $this->testRunner;
 	}
 }
 
