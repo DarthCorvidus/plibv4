@@ -16,27 +16,38 @@ use RuntimeException;
  * Validates that a Dockerfile exists in the specified path
  */
 class Container {
-	private string $path;
+	private string $dockerfilePath;
 	private string $name;
-	private string $tag;
 	/** @var list<string> */
 	private array $volumes = [];
 	/** @var array<string, string> */
 	private array $annotations = [];
-	
+	private string $distribution;
+	private int $version;
+	private string $imageName;
 	/**
 	 * Constructor
-	 * @param string $path Path to Dockerfile directory
-	 * @param string $name Container name
-	 * @param string $tag Image tag
+	 * @param string $dockerfilePath Path to Dockerfile
 	 * @throws InvalidArgumentException If no Dockerfile exists in path
 	 */
-	public function __construct(string $path, string $name, string $tag) {
-		$this->path = rtrim($path, '/');
-		$this->name = $name;
-		$this->tag = $tag;
-		
-		$this->validateDockerfile();
+	public function __construct(string $dockerfilePath) {
+		$this->dockerfilePath = $dockerfilePath;	
+		$dirname = dirname($dockerfilePath);
+		$parts = explode("/", $dirname);
+		$this->version = array_pop($parts);
+		$this->distribution = array_pop($parts);
+		$this->name = "plibv4-test-".$this->distribution.$this->version;
+		$this->addAnnotation("distribution", $this->distribution);
+		$this->addAnnotation("version", $this->version);
+		$this->build();
+	}
+
+	static function extractNameFromDockerpath(string $dockerfilePath): string {
+		$dirname = dirname($dockerfilePath);
+		$parts = explode("/", $dirname);
+		$version = array_pop($parts);
+		$distribution = array_pop($parts);
+	return $distribution.$version;
 	}
 	
 	/**
@@ -75,25 +86,11 @@ class Container {
 	}
 	
 	/**
-	 * Validate that Dockerfile exists in the path
-	 * @throws InvalidArgumentException If Dockerfile does not exist
-	 */
-	private function validateDockerfile(): void {
-		$dockerfilePath = $this->path . '/Dockerfile';
-		
-		if (!file_exists($dockerfilePath)) {
-			throw new InvalidArgumentException(
-				"No Dockerfile found in path: '{$this->path}'"
-			);
-		}
-	}
-	
-	/**
 	 * Get the path
 	 * @return string
 	 */
-	public function getPath(): string {
-		return $this->path;
+	public function getDockerfilePath(): string {
+		return $this->dockerfilePath;
 	}
 	
 	/**
@@ -105,28 +102,21 @@ class Container {
 	}
 	
 	/**
-	 * Get the image tag
-	 * @return string
-	 */
-	public function getTag(): string {
-		return $this->tag;
-	}
-	
-	/**
 	 * Build the Docker image
 	 * @throws RuntimeException If build fails
 	 */
 	public function build(): void {
-		$imageName = $this->name . ':' . $this->tag;
-		echo "Building image {$imageName}...";
-		$buildCmd = "docker build -t {$imageName} {$this->path} 2>&1";
+		$context = dirname($this->dockerfilePath);
+		$this->imageName = $this->distribution.$this->version;
+		echo "Building image {$this->name}...";
+		$buildCmd = "docker build -t {$this->imageName} {$context} 2>&1";
 		
 		$output = [];
 		exec($buildCmd, $output, $exitCode);
 		
 		if ($exitCode !== 0) {
 			echo PHP_EOL;
-			throw new RuntimeException("Failed to build Docker image {$imageName}: " . implode("\n", $output));
+			throw new RuntimeException("Failed to build Docker image {$this->imageName}: " . implode("\n", $output));
 		}
 		echo "...successful!".PHP_EOL;
 	}
@@ -136,8 +126,6 @@ class Container {
 	 * @throws RuntimeException If container fails to start
 	 */
 	public function run(): void {
-		$imageName = $this->name . ':' . $this->tag;
-		
 		// Check if container already exists
 		$output = [];
 		exec("docker ps -a --filter name=^{$this->name}$ --format '{{.Names}}' 2>&1", $output, $exitCode);
@@ -177,7 +165,7 @@ class Container {
 			$volumeArgs .= " -v {$volume}";
 		}
 		
-		$cmd = "docker run -d --name {$this->name}{$volumeArgs} {$imageName} 2>&1";
+		$cmd = "docker run -d --name {$this->name}{$volumeArgs} {$this->imageName} 2>&1";
 		
 		$output = [];
 		exec($cmd, $output, $exitCode);

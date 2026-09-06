@@ -41,29 +41,15 @@ class Containers {
 		$basePath = rtrim($path, '/') . '/';
 		$dockerfiles = self::getDockerfiles($basePath);
 		foreach ($dockerfiles as $dockerfilePath) {
-			// Extract distribution and version from path
-			$relativePath = substr($dockerfilePath, strlen($basePath));
-			$parts = explode('/', $relativePath);
-			if (count($parts) >= 2) {
-				array_pop($parts);
-				$version = array_pop($parts);
-				$distribution = array_pop($parts);
-				
-				$containerName = $imagePrefix . '-' . $distribution . '-' . $version;
-				$tag = $distribution . '-' . $version;
-				try {
-					$container = new Container(dirname($dockerfilePath), $containerName, $tag);
-					$container->addAnnotation('distribution', $distribution);
-					$container->addAnnotation('version', $version);
-					$containers->addContainer($container);
-				} catch (InvalidArgumentException $e) {
-					echo "Invalid container: ".$e->getMessage().PHP_EOL;
-					// Skip invalid containers
-					continue;
-				}
+			try {
+				$container = new Container($dockerfilePath);
+				$containers->addContainer($container);
+			} catch (InvalidArgumentException $e) {
+				echo "Invalid container: ".$e->getMessage().PHP_EOL;
+				// Skip invalid containers
+				continue;
 			}
 		}
-		
 		return $containers;
 	}
 
