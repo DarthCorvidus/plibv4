@@ -17,7 +17,7 @@ use RuntimeException;
  */
 class Container {
 	private string $dockerfilePath;
-	private string $name;
+	private string $containerName;
 	/** @var list<string> */
 	private array $volumes = [];
 	/** @var array<string, string> */
@@ -36,7 +36,7 @@ class Container {
 		$parts = explode("/", $dirname);
 		$this->version = array_pop($parts);
 		$this->distribution = array_pop($parts);
-		$this->name = "plibv4-test-".$this->distribution.$this->version;
+		$this->containerName = "plibv4-test-".$this->distribution.$this->version;
 		$this->addAnnotation("distribution", $this->distribution);
 		$this->addAnnotation("version", $this->version);
 		$this->build();
@@ -98,7 +98,7 @@ class Container {
 	 * @return string
 	 */
 	public function getName(): string {
-		return $this->name;
+		return $this->containerName;
 	}
 	
 	/**
@@ -108,7 +108,7 @@ class Container {
 	public function build(): void {
 		$context = dirname($this->dockerfilePath);
 		$this->imageName = $this->distribution.$this->version;
-		echo "Building image {$this->name}...";
+		echo "Building image {$this->containerName}...";
 		$buildCmd = "docker build -t {$this->imageName} {$context} 2>&1";
 		
 		$output = [];
@@ -128,27 +128,27 @@ class Container {
 	public function run(): void {
 		// Check if container already exists
 		$output = [];
-		exec("docker ps -a --filter name=^{$this->name}$ --format '{{.Names}}' 2>&1", $output, $exitCode);
+		exec("docker ps -a --filter name=^{$this->containerName}$ --format '{{.Names}}' 2>&1", $output, $exitCode);
 		
-		if (!empty($output) && trim($output[0]) === $this->name) {
+		if (!empty($output) && trim($output[0]) === $this->containerName) {
 			// Container exists, check if it's running
 			$output = [];
-			exec("docker ps --filter name=^{$this->name}$ --format '{{.Names}}' 2>&1", $output, $exitCode);
+			exec("docker ps --filter name=^{$this->containerName}$ --format '{{.Names}}' 2>&1", $output, $exitCode);
 			
-			if (!empty($output) && trim($output[0]) === $this->name) {
+			if (!empty($output) && trim($output[0]) === $this->containerName) {
 				// Container is already running
-				echo "Reusing running container {$this->name}\n";
+				echo "Reusing running container {$this->containerName}\n";
 				return;
 			}
 			
 			// Container exists but is stopped, start it
-			echo "Starting existing container {$this->name}...\n";
+			echo "Starting existing container {$this->containerName}...\n";
 			
 			$output = [];
-			exec("docker start {$this->name} 2>&1", $output, $exitCode);
+			exec("docker start {$this->containerName} 2>&1", $output, $exitCode);
 			
 			if ($exitCode !== 0) {
-				throw new RuntimeException("Failed to start existing container {$this->name}: " . implode("\n", $output));
+				throw new RuntimeException("Failed to start existing container {$this->containerName}: " . implode("\n", $output));
 			}
 			
 			// Wait a moment for container to be ready
@@ -157,7 +157,7 @@ class Container {
 		}
 		
 		// Container doesn't exist, create it
-		echo "Creating new container {$this->name}...\n";
+		echo "Creating new container {$this->containerName}...\n";
 		
 		// Build volume mounts
 		$volumeArgs = '';
@@ -165,13 +165,13 @@ class Container {
 			$volumeArgs .= " -v {$volume}";
 		}
 		
-		$cmd = "docker run -d --name {$this->name}{$volumeArgs} {$this->imageName} 2>&1";
+		$cmd = "docker run -d --name {$this->containerName}{$volumeArgs} {$this->imageName} 2>&1";
 		
 		$output = [];
 		exec($cmd, $output, $exitCode);
 		
 		if ($exitCode !== 0) {
-			throw new RuntimeException("Failed to start container {$this->name}: " . implode("\n", $output));
+			throw new RuntimeException("Failed to start container {$this->containerName}: " . implode("\n", $output));
 		}
 		
 		// Wait a moment for container to be ready
@@ -186,8 +186,8 @@ class Container {
 	 */
 	public function copy(string $source, string $destination): void {
 		// Replace container placeholder with actual container name
-		$source = str_replace('{container}', $this->name, $source);
-		$destination = str_replace('{container}', $this->name, $destination);
+		$source = str_replace('{container}', $this->containerName, $source);
+		$destination = str_replace('{container}', $this->containerName, $destination);
 		
 		$cmd = "docker cp {$source} {$destination} 2>&1";
 		
@@ -208,7 +208,7 @@ class Container {
 	 */
 	public function exec(string $command): CommandResult {
 		$escapedCommand = escapeshellarg($command);
-		$cmd = "docker exec {$this->name} bash -c {$escapedCommand} 2>&1";
+		$cmd = "docker exec {$this->containerName} bash -c {$escapedCommand} 2>&1";
 		
 		$output = [];
 		$exitCode = 0;
@@ -229,14 +229,14 @@ class Container {
 	 * @throws RuntimeException If container fails to stop
 	 */
 	public function stop(): void {
-		echo "Stopping container {$this->name}...\n";
+		echo "Stopping container {$this->containerName}...\n";
 		
 		$output = [];
-		exec("docker stop {$this->name} 2>&1", $output, $exitCode);
+		exec("docker stop {$this->containerName} 2>&1", $output, $exitCode);
 		
 		if ($exitCode !== 0) {
 			throw new RuntimeException(
-				"Failed to stop container {$this->name}: " . implode("\n", $output)
+				"Failed to stop container {$this->containerName}: " . implode("\n", $output)
 			);
 		}
 	}
@@ -246,14 +246,14 @@ class Container {
 	 * @throws RuntimeException If container fails to be removed
 	 */
 	public function delete(): void {
-		echo "Deleting container {$this->name}...\n";
+		echo "Deleting container {$this->containerName}...\n";
 		
 		$output = [];
-		exec("docker rm {$this->name} 2>&1", $output, $exitCode);
+		exec("docker rm {$this->containerName} 2>&1", $output, $exitCode);
 		
 		if ($exitCode !== 0) {
 			throw new RuntimeException(
-				"Failed to delete container {$this->name}: " . implode("\n", $output)
+				"Failed to delete container {$this->containerName}: " . implode("\n", $output)
 			);
 		}
 	}
