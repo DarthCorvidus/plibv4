@@ -39,43 +39,59 @@ class Containers {
 		
 		$containers = new self();
 		$basePath = rtrim($path, '/') . '/';
-		
-		$iterator = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
-			RecursiveIteratorIterator::SELF_FIRST
-		);
-		
-		foreach ($iterator as $file) {
-			if ($file->isFile() && $file->getFilename() === 'Dockerfile') {
-				$dockerfilePath = $file->getPath();
+		$dockerfiles = self::getDockerfiles($basePath);
+		foreach ($dockerfiles as $dockerfilePath) {
+			// Extract distribution and version from path
+			$relativePath = substr($dockerfilePath, strlen($basePath));
+			$parts = explode('/', $relativePath);
+			if (count($parts) >= 2) {
+				array_pop($parts);
+				$version = array_pop($parts);
+				$distribution = array_pop($parts);
 				
-				// Extract distribution and version from path
-				$relativePath = substr($dockerfilePath, strlen($basePath));
-				$parts = explode('/', $relativePath);
-				
-				if (count($parts) >= 2) {
-					$version = array_pop($parts);
-					$distribution = array_pop($parts);
-					
-					$containerName = $imagePrefix . '-' . $distribution . '-' . $version;
-					$tag = $distribution . '-' . $version;
-					
-					try {
-						$container = new Container($dockerfilePath, $containerName, $tag);
-						$container->addAnnotation('distribution', $distribution);
-						$container->addAnnotation('version', $version);
-						$containers->addContainer($container);
-					} catch (InvalidArgumentException $e) {
-						// Skip invalid containers
-						continue;
-					}
+				$containerName = $imagePrefix . '-' . $distribution . '-' . $version;
+				$tag = $distribution . '-' . $version;
+				try {
+					$container = new Container(dirname($dockerfilePath), $containerName, $tag);
+					$container->addAnnotation('distribution', $distribution);
+					$container->addAnnotation('version', $version);
+					$containers->addContainer($container);
+				} catch (InvalidArgumentException $e) {
+					echo "Invalid container: ".$e->getMessage().PHP_EOL;
+					// Skip invalid containers
+					continue;
 				}
 			}
 		}
 		
 		return $containers;
 	}
-	
+
+	/**
+	 * @return list<string> List of paths to Dockerfiles
+	 */
+	public static function getDockerfiles(string $basePath): array {
+		$paths = array();
+			$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
+			RecursiveIteratorIterator::SELF_FIRST
+		);
+		
+		foreach ($iterator as $file) {
+			if($file->getFilename()!== 'Dockerfile') {
+				continue;
+			}
+			if($file->getFilename()!== 'Dockerfile') {
+				continue;
+			}
+			if ($file->isFile() && $file->getFilename() === 'Dockerfile') {
+				$dockerfilePath = $file->getPath()."/".$file->getFilename();
+				$paths[] = $dockerfilePath;
+			}
+		}
+	return $paths;
+	}
+
 	/**
 	 * Add a container to the collection
 	 * @param Container $container Container instance to add
