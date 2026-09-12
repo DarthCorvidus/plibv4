@@ -29,12 +29,14 @@ class Main {
 	 * @param array<int, string> $argv Command-line arguments
 	 */
 	public function __construct(string $basePath, array $argv) {
-		$this->dockerfiles = DockerFiles::fromDistributions($basePath.'/cicd/dockerfiles');
-		$this->projects = Projects::fromDirectories($basePath);
-		
 		// Parse command-line arguments
 		$model = new ArgvCICD();
 		$this->argv = new Argv($argv, $model);
+
+		$dockerfiles = DockerFiles::fromDistributions($basePath.'/cicd/dockerfiles');
+		$this->dockerfiles = $this->filterDockerFiles($dockerfiles);
+
+		$this->projects = Projects::fromDirectories($basePath);
 		
 		// Check for no-cleanup flag
 		$this->noCleanup = $this->argv->getBoolean('no-cleanup');
@@ -43,9 +45,6 @@ class Main {
 			exit(0);
 		}
 		$this->containers = Containers::fromDockerfiles($this->dockerfiles);
-		
-		// Filter containers based on command-line arguments
-		$this->containers = $this->filterContainers($this->containers);
 		
 		$this->testRunner = new TestRunner();
 		$this->testRunner->ensureVolumeExists();
@@ -70,25 +69,13 @@ class Main {
 		}
 	}
 
-	/**
-	 * Filter containers based on command-line arguments
-	 * @param Containers $containers
-	 * @return Containers Filtered containers
-	 */
-	private function filterContainers(Containers $containers): Containers {
-		// Handle --distro argument (can be comma-separated)
-		if ($this->argv->hasValue('distros')) {
-			$distros = array_map('trim', explode(',', $this->argv->getValue('distros')));
-			$containers = $containers->getByAnnotation('distribution', $distros);
+	private function filterDockerFiles(Dockerfiles $dockerfiles): Dockerfiles {
+		if (!$this->argv->hasValue('distros')) {
+			return $dockerfiles;
 		}
-		
-		// Handle --version argument
-		if ($this->argv->hasValue('versions')) {
-			$versions = array_map('trim', explode(',', $this->argv->getValue('versions')));
-			$containers = $containers->getByAnnotation('version', $versions);
-		}
-		
-		return $containers;
+		$distros = array_map('trim', explode(',', $this->argv->getValue('distros')));
+		$new = $dockerfiles->getByNames($distros);
+		return $new;
 	}
 
 	private function filterProjects(): Projects {

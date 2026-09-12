@@ -31,10 +31,6 @@ class ArgvCICD extends ArgvGeneric {
 		$distro = UserValue::asOptional();
 		$this->addNamedArg('distros', $distro);
 		
-		// Add optional version filter
-		$version = UserValue::asOptional();
-		$this->addNamedArg('versions', $version);
-
 		// Add optional project filter
 		$version = UserValue::asOptional();
 		$this->addNamedArg('projects', $version);
