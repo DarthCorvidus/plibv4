@@ -53,6 +53,15 @@ class Containers {
 		return $containers;
 	}
 
+	public static function fromDockerfiles(Dockerfiles $dockerfiles): self {
+		$containers = new self();
+		for($i = 0; $i < $dockerfiles->getCount();$i++) {
+			$container = new Container($dockerfiles->getDockerFile($i)->getDockerfilePath());
+			$containers->addContainer($container);
+		}
+	return $containers;
+	}
+
 	/**
 	 * @return list<string> List of paths to Dockerfiles
 	 */

@@ -22,13 +22,14 @@ class Main {
 	private TestRunner $testRunner;
 	private Argv $argv;
 	private bool $noCleanup = false;
-	
+	private Dockerfiles $dockerfiles;
 	/**
 	 * Constructor
 	 * @param string $basePath Base path to scan for projects
 	 * @param array<int, string> $argv Command-line arguments
 	 */
 	public function __construct(string $basePath, array $argv) {
+		$this->dockerfiles = DockerFiles::fromDistributions($basePath.'/cicd/dockerfiles');
 		$this->projects = Projects::fromDirectories($basePath);
 		
 		// Parse command-line arguments
@@ -41,7 +42,7 @@ class Main {
 			$this->printStatus();
 			exit(0);
 		}
-		$this->containers = Containers::fromDistributions($basePath.'/cicd/dockerfiles', "plibv4-test");
+		$this->containers = Containers::fromDockerfiles($this->dockerfiles);
 		
 		// Filter containers based on command-line arguments
 		$this->containers = $this->filterContainers($this->containers);
@@ -51,6 +52,11 @@ class Main {
 	}
 
 	public function printStatus(): void {
+		echo "Available Environments:".PHP_EOL;
+		foreach ($this->dockerfiles->getNames() as $name) {
+			echo "\t".$name.PHP_EOL;
+		}
+
 		echo "Incomplete Projects:".PHP_EOL;
 		$incomplete = $this->projects->getIncompleteProjects();
 		for($i=0;$i<$incomplete->getCount();$i++) {
@@ -62,7 +68,6 @@ class Main {
 		for($i=0;$i<$incomplete->getCount();$i++) {
 			echo "\t".$incomplete->getProject($i)->getName().PHP_EOL;
 		}
-
 	}
 
 	/**
