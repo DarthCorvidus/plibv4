@@ -204,24 +204,26 @@ class Container {
 	/**
 	 * Execute a command in the container
 	 * @param string $command Command to execute
-	 * @return CommandResult Result of the command execution
+	 * @return void
 	 */
-	public function exec(string $command): CommandResult {
+	public function exec(string $command): void {
 		$escapedCommand = escapeshellarg($command);
 		$cmd = "docker exec {$this->containerName} bash -c {$escapedCommand} 2>&1";
 		
 		$output = [];
-		$exitCode = 0;
+		$ph = popen($cmd, "r");
+		while($line = fgets($ph)) {
+			$output[] = $line;
+		}
+		$exitCode = pclose($ph);
 		exec($cmd, $output, $exitCode);
 		
 		$outputStr = implode("\n", $output);
-		
-		return new CommandResult(
-			$exitCode === 0,
-			$exitCode,
-			$outputStr,
-			$command
-		);
+		if($exitCode !== 0)	{
+			$e = new ExecException($cmd, $exitCode);
+			$e->setOutput($outputStr);
+			throw $e;
+		}
 	}
 	
 	/**

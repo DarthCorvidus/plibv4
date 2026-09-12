@@ -18,7 +18,7 @@ class TestRunner {
 	private int $totalTests = 0;
 	private int $passedTests = 0;
 	private int $failedTests = 0;
-	
+	private array $errors = array();
 	/**
 	 * Set the volume name to use
 	 * @param string $volumeName
@@ -55,7 +55,6 @@ class TestRunner {
 		try {
 			// 1. Build and run container
 			$container->addVolume("{$this->volumeName}:/home/jenkins");
-			$container->build();
 			$container->run();
 			
 			// 2. Clean up any existing project directory
@@ -65,7 +64,7 @@ class TestRunner {
 			$this->copyProjectFiles($project, $container);
 			
 			// 4. Run composer commands
-			$this->runComposerCommands($container);
+			$this->runComposerCommands($project, $container);
 		} catch (RuntimeException $e) {
 			echo "✗ Error: {$e->getMessage()}\n";
 			$this->failedTests++;
@@ -76,19 +75,21 @@ class TestRunner {
 	 * Run composer commands (install, test, psalm) in the container
 	 * @param Container $container
 	 */
-	private function runComposerCommands(Container $container): void {
+	private function runComposerCommands(Project $project, Container $container): void {
 		$composer = ["install", "test", "psalm"];
 		foreach($composer as $value) {
 			$this->totalTests++;
 			echo "Running composer ".$value."...";
-			$result = $container->exec('cd /home/jenkins/project && composer '.$value);
-			if(!$result->isSuccess()) {
+			try {
+				$container->exec('cd /home/jenkins/project && composer '.$value);
+			} catch(ExecException $e) {
 				echo "FAIL".PHP_EOL;
 				echo str_repeat("=", 80).PHP_EOL;
 				echo "Failed command output:".PHP_EOL;
 				echo str_repeat("=", 80).PHP_EOL;
-				echo $result->getOutput().PHP_EOL;
+				echo $e->getOutput().PHP_EOL;
 				echo str_repeat("=", 80).PHP_EOL;
+				$this->errors[] = "{$project->getName()} on {$container->getName()}: composer ".$value.PHP_EOL;
 				$this->failedTests++;
 				continue;
 			}
@@ -220,11 +221,14 @@ class TestRunner {
 		echo "Total:  {$this->totalTests}\n";
 		echo "Passed: {$this->passedTests}\n";
 		echo "Failed: {$this->failedTests}\n";
-		
+
 		if ($this->failedTests === 0 && $this->totalTests > 0) {
 			echo "\n✓ All tests passed!\n";
-		} elseif ($this->failedTests > 0) {
-			echo "\n✗ Some tests failed\n";
+			return;
+		} 
+		echo "Failed Tests:".PHP_EOL;
+		foreach($this->errors as $value) {
+			echo $value.PHP_EOL;
 		}
 		echo str_repeat('=', 70) . "\n";
 	}
