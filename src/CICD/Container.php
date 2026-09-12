@@ -216,8 +216,6 @@ class Container {
 			$output[] = $line;
 		}
 		$exitCode = pclose($ph);
-		exec($cmd, $output, $exitCode);
-		
 		$outputStr = implode("\n", $output);
 		if($exitCode !== 0)	{
 			$e = new ExecException($cmd, $exitCode);

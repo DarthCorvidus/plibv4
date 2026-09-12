@@ -34,16 +34,18 @@ class Main {
 		$this->argv = new Argv($argv, $model);
 
 		$dockerfiles = DockerFiles::fromDistributions($basePath.'/cicd/dockerfiles');
-		$this->dockerfiles = $this->filterDockerFiles($dockerfiles);
+		
 
 		$this->projects = Projects::fromDirectories($basePath);
 		
 		// Check for no-cleanup flag
 		$this->noCleanup = $this->argv->getBoolean('no-cleanup');
 		if($this->argv->getBoolean("status")) {
+			$this->dockerfiles = $dockerfiles;
 			$this->printStatus();
 			exit(0);
 		}
+		$this->dockerfiles = $this->filterDockerFiles($dockerfiles);
 		$this->containers = Containers::fromDockerfiles($this->dockerfiles);
 		
 		$this->testRunner = new TestRunner();
@@ -74,8 +76,13 @@ class Main {
 			return $dockerfiles;
 		}
 		$distros = array_map('trim', explode(',', $this->argv->getValue('distros')));
-		$new = $dockerfiles->getByNames($distros);
-		return $new;
+		foreach ($distros as $distro) {
+			if (!$dockerfiles->hasName($distro)) {
+				echo "Error: environment '{$distro}' not found\n";
+				exit(1);
+			}
+		}
+		return $dockerfiles->getByNames($distros);
 	}
 
 	private function filterProjects(): Projects {
