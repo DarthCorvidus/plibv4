@@ -14,7 +14,6 @@ use RuntimeException;
  */
 class ExecException extends RuntimeException {
 	private string $output = "";
-	private int $exitCode = 255;
 
 	/**
 	 * Get command output
@@ -30,21 +29,5 @@ class ExecException extends RuntimeException {
 	 */
 	public function setOutput(string $output): void {
 		$this->output = $output;
-	}
-
-	/**
-	 * Get exit code
-	 * @return int
-	 */
-	public function getExitCode(): int {
-		return $this->exitCode;
-	}
-
-	/**
-	 * Set exit code
-	 * @param int $exitCode
-	 */
-	public function setExitCode(int $exitCode): void {
-		$this->exitCode = $exitCode;
 	}
 }
