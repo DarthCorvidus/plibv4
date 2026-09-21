@@ -37,8 +37,6 @@ class Container {
 		$this->version = array_pop($parts);
 		$this->distribution = array_pop($parts);
 		$this->containerName = "plibv4-test-".$this->distribution.$this->version;
-		$this->addAnnotation("distribution", $this->distribution);
-		$this->addAnnotation("version", $this->version);
 		$this->build();
 	}
 
@@ -56,33 +54,6 @@ class Container {
 	 */
 	public function addVolume(string $volume): void {
 		$this->volumes[] = $volume;
-	}
-	
-	/**
-	 * Add an annotation (key-value metadata)
-	 * @param string $key Annotation key
-	 * @param string $value Annotation value
-	 */
-	public function addAnnotation(string $key, string $value): void {
-		$this->annotations[$key] = $value;
-	}
-	
-	/**
-	 * Get an annotation value by key
-	 * @param string $key Annotation key
-	 * @return string|null Annotation value or null if not found
-	 */
-	public function getAnnotation(string $key): ?string {
-		return $this->annotations[$key] ?? null;
-	}
-	
-	/**
-	 * Check if an annotation exists
-	 * @param string $key Annotation key
-	 * @return bool True if annotation exists
-	 */
-	public function hasAnnotation(string $key): bool {
-		return isset($this->annotations[$key]);
 	}
 	
 	/**
